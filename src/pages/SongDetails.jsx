@@ -3,18 +3,40 @@ import { useSelector, useDispatch } from 'react-redux'
 import { DetailsHeader, Error, Loader, RelatedSongs } from '../components'
 
 import { setActiveSong, playPause } from '../redux/features/playerSlice'
-import { useGetSongDetailsQuery } from '../redux/services/shazamCore'
+import {
+  useGetRelatedSongsQuery,
+  useGetSongDetailsQuery,
+} from '../redux/services/shazamCore'
 
 const SongDetails = () => {
   const dispatch = useDispatch()
-  const { songid } = useParams()
+  const { songid, id: artistId } = useParams()
   const { activeSong, isPlaying } = useSelector((state) => state.player)
   const { data: songData, isFetching: isFetchingSongDetails } =
     useGetSongDetailsQuery(songid)
+  const {
+    data,
+    isFetching: isFetchingRelatedSongs,
+    error,
+  } = useGetRelatedSongsQuery(songid)
+
+  const handlePlayClick = (song, i) => {
+    dispatch(setActiveSong({ song, data, i }))
+    dispatch(playPause(true))
+  }
+
+  const handlePauseClick = () => {
+    dispatch(playPause(false))
+  }
+
+  if (isFetchingSongDetails || isFetchingRelatedSongs)
+    return <Loader title='Searching song details' />
+
+  if (error) return <Error />
 
   return (
     <div className='flex flex-col'>
-      <DetailsHeader songData={songData} />
+      <DetailsHeader artistId={artistId} songData={songData} />
       <div className='mb-10'>
         <h2 className='text-3xl font-bold text-white'>Lyrics:</h2>
 
@@ -30,6 +52,15 @@ const SongDetails = () => {
           )}
         </div>
       </div>
+
+      <RelatedSongs
+        data={data}
+        activeSong={activeSong}
+        artistId={artistId}
+        isPlaying={isPlaying}
+        handlePlayClick={handlePlayClick}
+        handlePauseClick={handlePauseClick}
+      />
     </div>
   )
 }
